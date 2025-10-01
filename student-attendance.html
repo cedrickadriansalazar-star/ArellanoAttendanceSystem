@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="Arellano_University_logo.png">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Student Attendance Monitoring System</title>
+  <style>
+    @import url('https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css');
+    :root{
+      --accent:#2b6cb0;
+      --muted:#6b7280;
+      --bg:#f7fafc;
+      --card:#ffffff;
+    }
+    *{box-sizing:border-box;}
+    body{
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin:0;
+      padding:16px;
+      background:linear-gradient(180deg,#eef2ff 0%,var(--bg) 100%);
+      color:#0f172a;
+      position:relative;
+    }
+    body::before {
+        content: ''; position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+        background-image: url('Arellano_University_logo.png');
+        background-repeat: no-repeat; background-position: center; background-size: 600px;
+        opacity: 0.05; z-index: -1;
+    }
+    .container{max-width:1000px;margin:0 auto; animation: fadeIn 0.5s ease-in-out;}
+    .sub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    header h1{font-size:20px;margin:0}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:12px}
+    .card{background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(11,23,39,0.06)}
+    label{display:block;font-size:13px;margin-top:8px;color:var(--muted)}
+    input, select{
+      width:100%;padding:8px;border-radius:8px;border:1px solid #e6eef8;margin-top:6px;
+      font-size:14px;background:#fbfdff;
+      transition: all 0.2s ease;
+    }
+    button{
+      background:var(--accent);color:white;border:none;padding:10px 12px;border-radius:8px;font-weight:600;
+      cursor:pointer;margin-top:10px;
+    }
+    button.secondary{background:#4a5568}
+    button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(43,108,176,0.2); outline: none; }
+
+    .small{font-size:13px;color:var(--muted)}
+    .controls{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+    th,td{padding:8px;border:1px solid #eef2f7;text-align:left}
+    th{background:#f1f5f9;font-weight:700}
+    .actions{display:flex;gap:6px}
+    .tag-present{background:#d1fae5;padding:6px;border-radius:8px;color:#065f46;font-weight:700}
+    .tag-absent{background:#fee2e2;padding:6px;border-radius:8px;color:#9b1c1c;font-weight:700}
+    .note{margin-top:8px;color:#334155;font-size:13px}
+    .note.success { padding: 8px; border-radius: 8px; background: #d1fae5; color: #065f46; }
+    .note.error { padding: 8px; border-radius: 8px; background: #fee2e2; color: #9b1c1c; }
+    .top-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap; margin-bottom: 8px;}
+    .right{display:flex;gap:6px}
+    .danger{background:#ef4444}
+    .flex-col{display:flex;flex-direction:column}
+    .help{font-size:13px;color:#475569;margin-top:6px}
+    .msg{padding:8px;border-radius:8px;margin-top:8px;background:#ecfccb;color:#065f46}
+    footer{margin-top:10px;font-size:13px;color:var(--muted)}
+    #qr-reader { width: 100%; border: 1px solid #e6eef8; border-radius: 8px; margin-top: 8px; }
+    .nav-buttons button { margin-top:0; background: #64748b; }
+    .nav-buttons .logout { background: #c53030; }
+    h2 { margin: 0 0 6px 0; font-size: 22px; }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 0.75rem; border-bottom: 1px solid #dde6f1; padding-bottom: 0.75rem; }
+    header .logo { height: 50px; }
+    header .school-name { font-size: 24px; font-weight: 700; color: var(--accent); letter-spacing: 1px; margin: 0; }
+    @media (max-width:900px){
+      .sub-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .grid{grid-template-columns:1fr; }
+      .top-controls { flex-direction: column; align-items: stretch; }
+      .top-controls .controls { margin-left: 0; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="Arellano_University_logo.png" alt="Arellano University Logo" class="logo">
+      <h1 class="school-name">ARELLANO UNIVERSITY</h1>
+    </header>
+    <div class="sub-header">
+      <h1 id="section-title">Section: Loading...</h1>
+      <div class="nav-buttons">
+        <button id="btn-switch-section">Switch Section</button>
+        <button id="btn-logout" class="logout">Logout</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Tools & Actions</h2>
+
+        <div class="controls" style="flex-direction: column; align-items: stretch; gap: 10px;">
+            <button id="btn-open-add-student-modal"><i class='bx bx-user-plus'></i> Add New Student</button>
+            <button id="btn-open-mark-att-modal" class="secondary"><i class='bx bx-check-square'></i> Mark Attendance</button>
+        </div>
+
+        <hr style="margin:12px 0">
+
+        <section id="qr-scanner-section" class="flex-col">
+          <h3 style="margin:4px 0 2px">Scan QR Code</h3>
+          <div id="qr-reader"></div>
+          <button id="btn-start-scan" class="secondary"><i class='bx bx-qr-scan'></i> Start QR Scanner</button>
+          <div id="qr-result" class="note"></div>
+        </section>
+
+        <hr style="margin:10px 0">
+
+        <section id="backup" class="flex-col">
+          <h3 style="margin:6px 0 2px">Data Management</h3>
+          <div class="controls">
+            <button id="btn-import-students" class="secondary"><i class='bx bx-upload'></i> Import Students</button>
+            <button id="btn-generate-qrs" class="secondary"><i class='bx bx-qr'></i> Generate QR Codes</button>
+            <button id="btn-export-backup"><i class='bx bx-download'></i> Export Backup</button>
+            <button id="btn-clear" class="danger"><i class='bx bx-trash'></i> Clear All Data</button>
+          </div>
+          <input id="file-input" type="file" accept=".json,.csv" style="display:none;margin-top:8px" />
+          <div class="help">Export creates a JSON file you can save. Import restores from that file. Clearing deletes everything from browser storage.</div>
+        </section>
+      </div>
+
+      <div class="card">
+        <h2>Attendance Records</h2>
+        <div class="top-controls">
+          <input id="search-id" type="text" placeholder="Filter by Student ID/Name" style="margin-top:0; flex-grow: 1;" />
+          <input id="filter-date" type="date" title="Filter by Date" style="margin-top:0;">
+          <select id="filter-status" style="margin-top:0;">
+            <option value="">All Statuses</option>
+            <option value="P">Present</option>
+            <option value="A">Absent</option>
+          </select>
+          <div class="controls" style="margin-left: auto; margin-top: 0;">
+            <button id="btn-reset-filters" class="secondary" style="margin-top:0;"><i class='bx bx-x'></i> Clear Filters</button>
+            <button id="btn-export-csv" class="secondary" style="margin-top:0;"><i class='bx bx-printer'></i> Print Attendance</button>
+          </div>
+        </div>
+
+        <div class="small" style="margin-bottom: 8px;">Showing <span id="row-count">0</span> records</div>
+        
+        <div style="margin-top:12px; overflow-x: auto;">
+          <table id="records-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="main-msg" class="msg" style="display:none"></div>
+
+        <footer>
+          <div>Fields: ID, Name, Date (MM-DD-YYYY), Status (Present/Absent)</div>
+          <div style="margin-top:6px">Instructions: Add students before marking attendance. Use filters to narrow down records. 🛟</div>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s; align-items: center; justify-content: center; }
+    .modal-content { display: flex; flex-direction: column; background-color: #fefefe; margin: 1rem; border-radius: 12px; max-width: 500px; width: 90%; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-height: 90vh; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 12px; }
+    .modal-header h3 { margin: 0; font-size: 18px; }
+    .close-btn { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1; }
+    .close-btn:hover, .close-btn:focus { color: black; }
+    .modal-body { overflow-y: auto; padding: 0 15px 15px 15px; }
+    .modal-header { padding: 15px 15px 8px 15px; }
+  </style>
+
+  <div id="add-student-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add New Student</h3>
+        <span class="close-btn" data-modal="add-student-modal">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 15px;">
+        <div class="help">Student ID is auto-generated (e.g., AU2025-00001).</div>
+        <label for="student-id">Student ID</label>
+        <input id="student-id" type="text" placeholder="Auto-generated" disabled />
+        <label for="student-name">Full Name</label>
+        <input id="student-name" type="text" placeholder="Enter student's full name" />
+        <div class="controls">
+          <button id="btn-add-student"><i class='bx bx-user-plus'></i> Add Student</button>
+          <button id="btn-list-students" class="secondary" style="margin-top: 10px;"><i class='bx bx-list-ul'></i> Show Student List</button>
+        </div>
+        <div id="add-student-msg" class="note" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mark-attendance-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Mark Attendance</h3>
+        <span class="close-btn" data-modal="mark-attendance-modal">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 15px;">
+        <label for="att-id">Student ID</label>
+        <input id="att-id" type="text" placeholder="e.g. AU2025-00001" />
+        <label for="att-date">Date</label>
+        <input id="att-date" type="date" />
+        <label for="att-status">Status</label>
+        <select id="att-status">
+          <option value="">-- choose status --</option>
+          <option value="P">Present (P)</option>
+          <option value="A">Absent (A)</option>
+        </select>
+        <div class="controls">
+          <button id="btn-mark-att" ><i class='bx bx-save'></i> Save Attendance</button>
+          <button id="btn-bulk-present" class="secondary" style="margin-top: 10px;"><i class='bx bx-check-double'></i> Mark All Present Today</button>
+        </div>
+        <div id="mark-att-msg" class="note" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="qr-generation-modal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3>Student QR Codes</h3>
+        <span class="close-btn" data-modal="qr-generation-modal">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p class="help">Print this page and give each student their QR code. They can use this for quick attendance marking.</p>
+        <div id="qr-codes-container">
+        </div>
+        <div class="controls" style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px;">
+          <button id="btn-save-pdf" style="width: 100%; justify-content: center;"><i class='bx bxs-file-pdf'></i> Save as PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    #qr-codes-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+    .qr-code-item { border: 1px solid #ccc; border-radius: 8px; padding: 10px; text-align: center; break-inside: avoid; }
+    .qr-code-item canvas { max-width: 90%; height: auto !important; margin: 0 auto; }
+    .qr-code-item .name { font-weight: bold; margin-top: 5px; font-size: 14px; }
+    .qr-code-item .id { font-size: 12px; color: #555; }
+    @media (max-width: 600px) {
+      #qr-codes-container { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    }
+    @media print {
+      body * { visibility: hidden; }
+      #qr-generation-modal, #qr-generation-modal * { visibility: visible; }
+      #qr-generation-modal { position: absolute; left: 0; top: 0; width: 100%; }
+      .modal-header, .modal-body .controls, .help { display: none !important; }
+    }
+  </style>
+
+  <div id="toast-container"></div>
+  <style>
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast { padding: 12px 18px; border-radius: 8px; color: white; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.15); animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards; }
+    .toast.success { background-color: #2b6cb0; }
+    .toast.error { background-color: #c53030; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-20px); } }
+    @media (max-width: 600px) {
+      #toast-container { top: 10px; left: 10px; right: 10px; align-items: center; }
+    }
+  </style>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+
+<script>
+(function(){
+  const CURRENT_TEACHER_KEY = 'sam_current_teacher_v1';
+  const CURRENT_SECTION_KEY = 'sam_current_section_v1';
+
+  const teacherData = JSON.parse(localStorage.getItem(CURRENT_TEACHER_KEY));
+  const sectionData = JSON.parse(localStorage.getItem(CURRENT_SECTION_KEY));
+
+  if (!teacherData || !sectionData) {
+    window.location.href = teacherData ? 'sections.html' : 'index.html';
+    return;
+  }
+  const STUDENTS_KEY = `sam_students_${sectionData.id}`;
+  const ATT_KEY = `sam_attendance_${sectionData.id}`;
+  const LAST_ID_KEY = `sam_last_id_${sectionData.id}`;
+  function loadStudents(){ return JSON.parse(localStorage.getItem(STUDENTS_KEY) || '[]'); }
+  function saveStudents(arr){ localStorage.setItem(STUDENTS_KEY, JSON.stringify(arr)); }
+  function loadAttendance(){ return JSON.parse(localStorage.getItem(ATT_KEY) || '[]'); }
+  function saveAttendance(arr){ localStorage.setItem(ATT_KEY, JSON.stringify(arr)); }
+  function getNextStudentId() {
+    let lastIdNum = parseInt(localStorage.getItem(LAST_ID_KEY) || '0', 10);
+    lastIdNum++;
+    localStorage.setItem(LAST_ID_KEY, lastIdNum);
+    const year = new Date().getFullYear();
+    return `AU${year}-${String(lastIdNum).padStart(5, '0')}`;
+  }
+
+  function formatDateForStore(d){
+    const dt = new Date(d);
+    if(isNaN(dt)) return null;
+    const mm = String(dt.getUTCMonth()+1).padStart(2,'0');
+    const dd = String(dt.getUTCDate()).padStart(2,'0');
+    const yy = dt.getUTCFullYear();
+    return `${mm}-${dd}-${yy}`;
+  }
+
+  const el = id => document.getElementById(id);
+  const msg = (id, text, ok=true) => {
+    const elem = el(id);
+    elem.textContent = text;
+    elem.className = 'note';
+    elem.style.display = 'block';
+    elem.classList.add(ok ? 'success' : 'error');
+    setTimeout(() => { elem.style.display = 'none'; }, 3000);
+  };
+
+  function showToast(message, isSuccess = true) {
+    const container = el('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${isSuccess ? 'success' : 'error'}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.remove();
+    }, 3000); // 3 seconds total lifetime
+  }
+
+  // Modal Logic
+  function setupModals() {
+    const openButtons = {
+      'btn-open-add-student-modal': 'add-student-modal',
+      'btn-open-mark-att-modal': 'mark-attendance-modal',
+      'btn-generate-qrs': 'qr-generation-modal'
+    };
+    for (const [btnId, modalId] of Object.entries(openButtons)) {
+      el(btnId).addEventListener('click', () => el(modalId).style.display = 'flex');
+    }
+
+    document.querySelectorAll('.close-btn').forEach(btn => {
+      btn.addEventListener('click', () => el(btn.dataset.modal).style.display = 'none');
+    });
+
+    window.addEventListener('click', (event) => {
+      if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+      }
+    });
+  }
+
+  function renderRecords(){
+    const tbody = document.querySelector('#records-table tbody');
+    tbody.innerHTML = '';
+    const students = loadStudents();
+    const atts = loadAttendance();
+
+    const filterId = el('search-id').value.trim().toLowerCase();
+    const filterDate = el('filter-date').value ? formatDateForStore(el('filter-date').value) : '';
+    const filterStatus = el('filter-status').value;
+
+    const rows = atts.map(a=>{
+      const s = students.find(x => x.id.toLowerCase() === a.id.toLowerCase());
+      return {
+        id: a.id,
+        name: s ? s.name : '(unknown)',
+        date: a.date,
+        status: a.status
+      };
+    });
+
+    const filtered = rows.filter(r => {
+        const searchMatch = filterId ? (r.id.toLowerCase().includes(filterId) || r.name.toLowerCase().includes(filterId)) : true;
+        const dateMatch = filterDate ? r.date === filterDate : true;
+        const statusMatch = filterStatus ? r.status === filterStatus : true;
+        return searchMatch && dateMatch && statusMatch;
+    });
+
+    filtered.sort((a,b)=>{
+      const ad = new Date(a.date), bd = new Date(b.date);
+      return bd - ad || a.id.localeCompare(b.id);
+    });
+
+    for(const r of filtered){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.id}</td>
+        <td>${escapeHtml(r.name)}</td>
+        <td>${r.date}</td>
+        <td>${r.status === 'P' ? '<span class="tag-present">Present</span>' : '<span class="tag-absent">Absent</span>'}</td>
+        <td>
+          <div class="actions">
+            <button data-action="delete" data-id="${r.id}" data-date="${r.date}" class="secondary" title="Delete Record"><i class='bx bx-trash'></i></button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+    el('row-count').textContent = filtered.length;
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  el('btn-add-student').addEventListener('click', ()=>{
+    const name = el('student-name').value.trim();
+    if(!name){ msg('add-student-msg','Please enter a name.', false); return; }
+
+    const id = getNextStudentId();
+
+    const students = loadStudents();
+    if(students.find(s => s.id.toLowerCase() === id.toLowerCase())){ msg('add-student-msg','Student ID already exists.', false); return; }
+
+    students.push({id:id, name:name});
+    saveStudents(students);
+    msg('add-student-msg','Student added successfully ✅');
+    el('student-id').value=''; el('student-name').value='';
+    setTimeout(() => el('add-student-modal').style.display = 'none', 1000);
+    renderRecords();
+  });
+
+  el('btn-list-students').addEventListener('click', ()=>{
+    const students = loadStudents();
+    if(students.length===0) return alert('No students stored yet.');
+    const list = students.map(s => `${s.id}\t${s.name}`).join('\n');
+    alert('Stored students:\n\n' + list);
+  });
+
+  el('btn-mark-att').addEventListener('click', ()=>{
+    const idVal = el('att-id').value.trim();
+    const dateVal = el('att-date').value;
+    const status = el('att-status').value;
+
+    if(!idVal || !dateVal || !status){
+      msg('mark-att-msg','Please fill ID, date, and status.', false);
+      return;
+    }
+    const students = loadStudents();
+    const found = students.find(s => s.id.toLowerCase() === idVal.toLowerCase());
+    if(!found){
+      msg('mark-att-msg','Student ID cannot be found. Please add student first.', false);
+      return;
+    }
+    const formatted = formatDateForStore(dateVal);
+    if(!formatted){ msg('mark-att-msg','Invalid date.', false); return; }
+    
+    const atts = loadAttendance();
+    const idx = atts.findIndex(a => a.id.toLowerCase() === idVal.toLowerCase() && a.date === formatted);
+    if(idx >= 0){
+      atts[idx].status = status;
+    } else {
+      atts.push({id:idVal, date:formatted, status:status});
+    }
+    saveAttendance(atts);
+    msg('mark-att-msg','Attendance saved ✅');
+    el('att-id').value=''; el('att-date').value=''; el('att-status').value='';
+    setTimeout(() => el('mark-attendance-modal').style.display = 'none', 1000);
+    renderRecords();
+  });
+  
+  el('btn-bulk-present').addEventListener('click', ()=>{
+    const students = loadStudents();
+    if(students.length===0){ alert('No students to mark. Add students first.'); return; }
+    const today = new Date();
+    const formatted = formatDateForStore(today);
+    const atts = loadAttendance();
+
+    for(const s of students){
+      const idx = atts.findIndex(a => a.id.toLowerCase() === s.id.toLowerCase() && a.date === formatted);
+      if(idx >= 0) atts[idx].status = 'P';
+      else atts.push({id:s.id, date:formatted, status:'P'});
+    } 
+    saveAttendance(atts);
+    msg('mark-att-msg','All students marked present for today ✅');
+    setTimeout(() => el('mark-attendance-modal').style.display = 'none', 1000);
+    renderRecords();
+  });
+
+  el('btn-reset-filters').addEventListener('click', ()=>{ 
+    el('search-id').value=''; el('filter-date').value=''; el('filter-status').value='';
+    renderRecords(); 
+  });
+
+  document.querySelector('#records-table tbody').addEventListener('click', (ev)=>{
+    const deleteButton = ev.target.closest('button[data-action="delete"]');
+    if(deleteButton){
+      const id = deleteButton.dataset.id;
+      const date = deleteButton.dataset.date;
+      if(!confirm(`Delete attendance for ID ${id} on ${date}?`)) return;
+      let atts = loadAttendance();
+      atts = atts.filter(a => !(String(a.id) === String(id) && a.date === date));
+      saveAttendance(atts); 
+      renderRecords();
+    }
+  });
+
+  el('btn-import-students').addEventListener('click', () => {
+    el('file-input').setAttribute('accept', '.csv');
+    el('file-input').dataset.importType = 'students';
+    el('file-input').click();
+  });
+
+  function triggerBackupImport() {
+    el('file-input').setAttribute('accept', '.xlsx,.json');
+    el('file-input').dataset.importType = 'backup';
+    el('file-input').click();
+  }
+
+  el('btn-export-backup').addEventListener('click', ()=>{
+    const students = loadStudents();
+    const attendance = loadAttendance();
+
+    const wb = XLSX.utils.book_new();
+    const ws_students = XLSX.utils.json_to_sheet(students);
+    const ws_attendance = XLSX.utils.json_to_sheet(attendance);
+
+    XLSX.utils.book_append_sheet(wb, ws_students, "Students");
+    XLSX.utils.book_append_sheet(wb, ws_attendance, "Attendance");
+
+    XLSX.writeFile(wb, `sam-backup-${sectionData.name.replace(/\s+/g, '-')}.xlsx`);
+  });
+
+  el('file-input').addEventListener('change', (e)=>{
+    const importType = e.target.dataset.importType;
+    if (importType === 'students') {
+        handleStudentImport(e);
+    } else {
+        handleBackupImport(e);
+    }
+    e.target.value = '';
+    e.target.dataset.importType = '';
+    e.target.setAttribute('accept', '.json,.csv');
+  });
+
+  function handleBackupImport(e) {
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+
+            const studentsSheet = workbook.Sheets["Students"];
+            const attendanceSheet = workbook.Sheets["Attendance"];
+
+            if (!studentsSheet || !attendanceSheet) {
+                throw new Error('Invalid backup file. "Students" and "Attendance" sheets are required.');
+            }
+
+            const students = XLSX.utils.sheet_to_json(studentsSheet);
+            const attendance = XLSX.utils.sheet_to_json(attendanceSheet);
+
+            saveStudents(students);
+            saveAttendance(attendance);
+            alert(`Backup imported successfully!\n- ${students.length} students\n- ${attendance.length} attendance records`);
+            renderRecords();
+        } catch(err) {
+            alert('Failed to import backup: ' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(f);
+  }
+
+  function handleStudentImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            const students = loadStudents();
+            let addedCount = 0;
+            let skippedCount = 0;
+            results.data.forEach(row => {
+                const name = row.Name || row.name; // Accept 'Name' or 'name' header
+                if (name) {
+                    const id = getNextStudentId();
+                    students.push({ id: id, name: name.trim() });
+                    addedCount++;
+                } else {
+                    skippedCount++;
+                }
+            });
+            saveStudents(students);
+            alert(`Import complete!\nAdded: ${addedCount} students\nSkipped: ${skippedCount} rows (missing name)`);
+            renderRecords();
+        }
+    });
+  }
+
+  el('btn-clear').addEventListener('click', ()=>{
+    if(!confirm(`Clear ALL students and attendance for section "${sectionData.name}"? This cannot be undone.`)) return;
+    localStorage.removeItem(STUDENTS_KEY);
+    localStorage.removeItem(ATT_KEY);
+    localStorage.removeItem(LAST_ID_KEY);
+    renderRecords();
+  });
+
+  el('btn-export-csv').addEventListener('click', ()=>{
+    const tableRows = document.querySelectorAll('#records-table tbody tr');
+    if(tableRows.length === 0){ alert('No records are currently displayed to export.'); return; }
+    const rows = Array.from(tableRows).map(tr => {
+      const [id, name, date, status] = Array.from(tr.cells).map(td => td.textContent);
+      return [id, name, date, status];
+    });
+    const csv = ['"ID","Name","Date","Status"', ...rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `attendance-${sectionData.id}-${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  let html5QrCode = null;
+  el('btn-start-scan').addEventListener('click', () => {
+    if (html5QrCode && html5QrCode.isScanning) {
+      html5QrCode.stop().then(ignore => {
+        el('btn-start-scan').innerHTML = "<i class='bx bx-qr-scan'></i> Start QR Scanner";
+        el('qr-result').textContent = 'Scanner stopped.';
+      });
+      return;
+    }
+
+    html5QrCode = new Html5Qrcode("qr-reader");
+    const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+      const students = loadStudents();
+      const student = students.find(s => s.id.toLowerCase() === decodedText.toLowerCase());
+
+      if (student) {
+        el('att-id').value = student.id;
+        el('att-status').value = 'P';
+        el('btn-mark-att').click();
+        showToast(`${student.name} marked as Present!`, true);
+      } else {
+        showToast(`Student ID "${decodedText}" not found!`, false);
+      }
+
+      el('qr-result').textContent = `Last scan attempt: ${new Date().toLocaleTimeString()}`;
+    };
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+      .then(() => {
+        el('btn-start-scan').innerHTML = "<i class='bx bx-stop-circle'></i> Stop Scanner";
+        el('qr-result').textContent = 'Scanner is active.';
+      })
+      .catch(err => {
+        el('qr-result').textContent = 'Error starting scanner: ' + err;
+      });
+  });
+
+  el('btn-generate-qrs').addEventListener('click', () => {
+    const students = loadStudents();
+    const container = el('qr-codes-container');
+    container.innerHTML = '';
+
+    if (students.length === 0) {
+      container.innerHTML = '<p>No students in this section. Add students first to generate QR codes.</p>';
+      return;
+    }
+
+    students.forEach(student => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'qr-code-item';
+      const canvas = document.createElement('canvas');
+      itemDiv.innerHTML = `<div class="name">${escapeHtml(student.name)}</div><div class="id">${student.id}</div>`;
+      itemDiv.appendChild(canvas);
+      container.appendChild(itemDiv);
+
+      QRCode.toCanvas(canvas, student.id, { width: 200 }, function (error) {
+        if (error) console.error(error);
+      });
+    });
+  });
+
+  el('btn-save-pdf').addEventListener('click', () => {
+    const { jsPDF } = window.jspdf;
+    const qrContainer = el('qr-codes-container');
+    const button = el('btn-save-pdf');
+
+    if (qrContainer.children.length === 0 || qrContainer.querySelector('p')) {
+        alert('No QR codes to generate a PDF for.');
+        return;
+    }
+
+    const originalButtonText = button.innerHTML;
+    button.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Generating PDF...";
+    button.disabled = true;
+
+    html2canvas(qrContainer, { scale: 2, useCORS: true }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const ratio = canvasWidth / canvasHeight;
+        
+        const imgWidth = pdfWidth - 20;
+        const imgHeight = imgWidth / ratio;
+
+        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+        pdf.save(`qr-codes-${sectionData.name.replace(/\s+/g, '-')}.pdf`);
+
+        button.innerHTML = originalButtonText;
+        button.disabled = false;
+    }).catch(err => {
+        console.error("Error generating PDF:", err);
+        alert("An error occurred while generating the PDF. Please check the console.");
+        button.innerHTML = originalButtonText;
+        button.disabled = false;
+    });
+  });
+
+  function init() {
+    el('section-title').textContent = `Section: ${sectionData.name}`;
+    document.title = `Attendance - ${sectionData.name}`;
+    el('att-date').valueAsDate = new Date();
+    ['search-id', 'filter-date', 'filter-status'].forEach(id => el(id).addEventListener('input', renderRecords));
+    el('btn-switch-section').addEventListener('click', () => window.location.href = 'sections.html');
+    el('btn-logout').addEventListener('click', () => {
+      localStorage.removeItem(CURRENT_TEACHER_KEY);
+      localStorage.removeItem(CURRENT_SECTION_KEY);
+      window.location.href = 'index.html';
+    });
+    setupModals();
+    renderRecords();
+  }
+
+  init();
+
+  el('btn-switch-section').innerHTML = "<i class='bx bx-transfer'></i> " + el('btn-switch-section').textContent;
+  el('btn-logout').innerHTML = "<i class='bx bx-log-out'></i> " + el('btn-logout').textContent;
+  el('btn-add-student').innerHTML = "<i class='bx bx-user-plus'></i> " + el('btn-add-student').textContent;
+  el('btn-mark-att').innerHTML = "<i class='bx bx-save'></i> " + el('btn-mark-att').textContent;
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="Arellano_University_logo.png">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Manage Sections - Student Attendance</title>
+  <link rel="stylesheet" href="shared-styles.css">
+  <style>
+    @import url('https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css');
+    :root{--accent:#2b6cb0;--muted:#6b7280;--bg:#f7fafc;--card:#ffffff; --danger: #ef4444; --secondary: #64748b;}
+    *{box-sizing:border-box}
+    body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;margin:0;padding:24px;background:linear-gradient(180deg,#eef2ff 0%,var(--bg) 100%);color:#0f172a;position:relative;overflow:hidden;}
+    body::before {
+        content: ''; position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+        background-image: url('Arellano_University_logo.png');
+        background-repeat: no-repeat; background-position: center; background-size: 500px;
+        opacity: 0.05; z-index: -1;
+    }
+    .container{max-width:700px;margin:0 auto; animation: fadeIn 0.5s ease-in-out;}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    header h1{font-size:24px;margin:0}
+    .card{background:var(--card);padding:1.25rem;border-radius:12px;box-shadow:0 6px 18px rgba(11,23,39,0.06);margin-bottom:1rem;}
+    label{display:block;font-size:13px;margin-top:8px;color:var(--muted);}
+    input{width:100%;padding:8px;border-radius:8px;border:1px solid #e6eef8;margin-top:6px;font-size:14px;background:#fbfdff;transition: all 0.2s ease;}
+    .school-name { font-size: 16px; font-weight: 600; color: var(--accent); text-align: center; margin-bottom: 1rem; letter-spacing: 1px; }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(43,108,176,0.2); outline: none; }
+    button{background:var(--accent);color:white;border:none;padding:10px 12px;border-radius:8px;font-weight:600;cursor:pointer;margin-top:10px;transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;}
+    #btn-add-section { width: 100%; justify-content: center; }
+    button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .section-list ul{list-style:none;padding:0;margin:0;}
+    .section-list ul {
+      max-height: 40vh;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+    .section-list ul::-webkit-scrollbar { width: 6px; }
+    .section-list ul::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 6px; }
+    .section-list ul::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+    .section-list ul::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .section-item{display:flex;justify-content:space-between;align-items:center;padding:1rem;border:1px solid #eef2f7; border-radius: 10px; transition: all 0.2s ease; margin-bottom: 0.75rem;}
+    .section-item:hover { border-color: var(--accent); background-color: #f8fafc; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .section-item:last-child{border-bottom:none;}
+    .section-item .info { display: flex; align-items: center; gap: 1rem; }
+    .section-item .info i { font-size: 1.75rem; color: var(--accent); }
+    .section-item .name{font-weight:600; font-size: 1rem; color: #1e293b;}
+    .section-item .actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .section-item .actions button{margin-top:0;font-size:12px;padding:6px 10px; }
+    .section-item .actions .danger{background:var(--danger);}
+    .section-item .actions .secondary{background:var(--secondary);}
+    .note{margin-top:8px;color:#334155;font-size:13px;}
+    .top-nav button { margin-top:0; }
+    .card-title-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+    .card-title-header h3 { margin: 0; }
+    .card-title-header button { margin-top: 0; padding: 6px 10px; font-size: 12px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s; align-items: center; justify-content: center; }
+    .modal-content { display: flex; flex-direction: column; background-color: #fefefe; margin: 1rem; border-radius: 12px; max-width: 500px; width: 90%; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-height: 90vh; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 12px; }
+    .modal-header h3 { margin: 0; font-size: 18px; }
+    .close-btn { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1; }
+    .modal-body { overflow-y: auto; padding: 0 1.25rem 1.25rem 1.25rem; }
+    .modal-header { padding: 1.25rem 1.25rem 8px 1.25rem; }
+    @media (max-width: 600px) {
+      body { padding: 16px; }
+      header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .top-nav { width: 100%; display: flex; gap: 8px; }
+      .card-title-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Manage Sections</h1>
+      <div class="top-nav">
+        <button id="btn-back-dash" class="secondary"><i class='bx bx-grid-alt'></i> Dashboard</button>
+        <button id="btn-logout" class="danger"><i class='bx bx-log-out'></i> Logout</button>
+      </div>
+    </header>
+
+    <p class="school-name">ARELLANO UNIVERSITY</p>
+    <div class="card">
+      <h3>Add New Section</h3>
+      <label for="section-name">Section Name (e.g., BSIT 1A)</label>
+      <input id="section-name" type="text" placeholder="Enter new section name" />
+      <button id="btn-add-section"><i class='bx bx-plus'></i> Add Section</button>
+      <div id="add-msg" class="note"></div>
+    </div>
+
+    <div class="card section-list">
+      <div class="card-title-header">
+        <h3>My Sections</h3>
+        <button id="btn-open-rename-modal" class="secondary"><i class='bx bx-pencil'></i> Rename a Section</button>
+      </div>
+      <ul id="sections-ul">
+      </ul>
+    </div>
+  </div>
+
+  <div id="rename-section-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Rename Section</h3>
+        <span class="close-btn" data-modal="rename-section-modal">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 15px;">
+        <label for="rename-section-select">Select section to rename:</label>
+        <select id="rename-section-select" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6eef8;margin-top:6px;font-size:14px;"></select>
+        <label for="rename-section-new-name">New section name:</label>
+        <input id="rename-section-new-name" type="text" placeholder="Enter the new name" />
+        <button id="btn-save-rename" style="width: 100%; justify-content: center;"><i class='bx bx-save'></i> Save Changes</button>
+        <div id="rename-msg" class="note" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const CURRENT_TEACHER_KEY = 'sam_current_teacher_v1';
+  const SECTIONS_KEY_PREFIX = 'sam_sections_';
+  const CURRENT_SECTION_KEY = 'sam_current_section_v1';
+
+  const teacherData = JSON.parse(localStorage.getItem(CURRENT_TEACHER_KEY));
+  if (!teacherData) { window.location.href = 'index.html'; return; }
+
+  const SECTIONS_KEY = `${SECTIONS_KEY_PREFIX}${teacherData.user}`;
+
+  const el = id => document.getElementById(id);
+  const sectionsUl = el('sections-ul');
+
+  function getSections() { return JSON.parse(localStorage.getItem(SECTIONS_KEY) || '[]'); }
+  function saveSections(sections) { localStorage.setItem(SECTIONS_KEY, JSON.stringify(sections)); }
+
+  function renderSections() {
+    const sections = getSections();
+    sectionsUl.innerHTML = '';
+    if (sections.length === 0) {
+      sectionsUl.innerHTML = '<li style="padding:12px; color:var(--muted);">No sections created yet.</li>';
+      return;
+    }
+    sections.forEach((section, index) => {
+      const li = document.createElement('li');
+      li.className = 'section-item';
+      li.innerHTML = `
+        <div class="info">
+          <i class='bx bxs-collection'></i>
+          <span class="name">${section.name}</span>
+        </div>
+        <div class="actions">
+          <button data-action="open" data-index="${index}"><i class='bx bx-log-in-circle'></i> Open</button>
+          <button data-action="delete" data-index="${index}" class="danger"><i class='bx bx-trash'></i> Delete</button>
+        </div>
+      `;
+      sectionsUl.appendChild(li);
+    });
+  }
+
+  el('btn-add-section').addEventListener('click', () => {
+    const name = el('section-name').value.trim();
+    if (!name) return;
+    const sections = getSections();
+    const newSection = { id: `sec_${Date.now()}`, name: name };
+    sections.push(newSection);
+    saveSections(sections);
+    el('section-name').value = '';
+    renderSections();
+  });
+
+  sectionsUl.addEventListener('click', (e) => {
+    const { action, index } = e.target.dataset;
+    if (!action) return;
+    let sections = getSections();
+    if (action === 'open') {
+      localStorage.setItem(CURRENT_SECTION_KEY, JSON.stringify(sections[index]));
+      window.location.href = 'student-attendance.html';
+    } else if (action === 'delete') {
+      if (confirm(`Delete section "${sections[index].name}"? All associated student and attendance data will be lost.`)) {
+        const sectionId = sections[index].id;
+        localStorage.removeItem(`sam_students_${sectionId}`);
+        localStorage.removeItem(`sam_attendance_${sectionId}`);
+        sections.splice(index, 1);
+        saveSections(sections);
+        renderSections();
+      }
+    }
+  });
+
+  const renameModal = el('rename-section-modal');
+  const renameSelect = el('rename-section-select');
+  const renameInput = el('rename-section-new-name');
+
+  function openRenameModal() {
+    const sections = getSections();
+    renameSelect.innerHTML = '';
+    if (sections.length === 0) {
+      renameSelect.innerHTML = '<option value="">No sections to rename</option>';
+      renameInput.disabled = true;
+    } else {
+      sections.forEach((section, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = section.name;
+        renameSelect.appendChild(option);
+      });
+      renameInput.disabled = false;
+    }
+    renameInput.value = '';
+    el('rename-msg').style.display = 'none';
+    renameModal.style.display = 'flex';
+  }
+
+  el('btn-open-rename-modal').addEventListener('click', openRenameModal);
+
+  el('btn-save-rename').addEventListener('click', () => {
+    const sectionIndex = renameSelect.value;
+    const newName = renameInput.value.trim();
+    if (sectionIndex === '' || !newName) {
+      alert('Please select a section and provide a new name.');
+      return;
+    }
+    let sections = getSections();
+    sections[sectionIndex].name = newName;
+    saveSections(sections);
+    renderSections();
+    renameModal.style.display = 'none';
+  });
+
+  renameModal.querySelector('.close-btn').addEventListener('click', () => renameModal.style.display = 'none');
+  window.addEventListener('click', (e) => { if (e.target === renameModal) renameModal.style.display = 'none'; });
+
+  el('btn-back-dash').addEventListener('click', () => window.location.href = 'landing.html');
+  el('btn-logout').addEventListener('click', () => {
+    localStorage.removeItem(CURRENT_TEACHER_KEY);
+    localStorage.removeItem('sam_current_section_v1');
+    window.location.href = 'index.html'
+  });
+
+  renderSections();
+})();
+</script>
+</body>
+</html>

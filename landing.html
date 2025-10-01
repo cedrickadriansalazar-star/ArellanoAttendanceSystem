@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="Arellano_University_logo.png">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard - Student Attendance</title>
+  <style>
+    @import url('https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css');
+    :root{--accent:#2b6cb0;--muted:#6b7280;--bg:#f7fafc;--card:#ffffff;}
+    *{box-sizing:border-box}
+    body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(180deg,#eef2ff 0%,var(--bg) 100%);color:#0f172a;position:relative;overflow:hidden;}
+    body::before {
+        content: ''; position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+        background-image: url('Arellano_University_logo.png');
+        background-repeat: no-repeat; background-position: center; background-size: 500px;
+        opacity: 0.05; z-index: -1;
+    }
+    .container{width:100%;max-width:550px;padding:1rem; animation: fadeIn 0.5s ease-in-out;}
+    .card{background:var(--card);padding:2rem;border-radius:16px;box-shadow:0 10px 30px rgba(11,23,39,0.08); text-align: center;}
+    .card-header { border-bottom: 1px solid #eef2f7; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+    h1{font-size:26px;margin:0 0 0.25rem;}
+    p{font-size:15px;color:var(--muted);margin:0;}
+    .actions{display:flex;flex-direction:column;gap:1.5rem; margin-top: 1rem;}
+    .action-card{
+      display: flex; align-items: center; gap: 1rem;
+      background-color: #f8fafc; border: 1px solid #eef2f7;
+      padding: 1.25rem; border-radius: 12px; text-align: left;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    .action-card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(43,108,176,0.1); border-color: var(--accent); }
+    .action-card i { font-size: 2.5rem; color: var(--accent); }
+    .action-card .text-content strong { display: block; font-size: 1.1rem; color: #1e293b; }
+    .action-card .text-content small { color: var(--muted); }
+    .logout{background:#718096; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; transition: all .2s ease; width: 100%;}
+    .logout:hover{background:#4a5568;}
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <h1 id="welcome-msg">Welcome!</h1>
+        <p>Select an option below to get started.</p>
+      </div>
+      <div class="actions">
+        <div id="btn-manage-sections" class="action-card">
+          <i class='bx bxs-collection'></i>
+          <div class="text-content">
+            <strong>Manage Sections</strong>
+            <small>Create, rename, and open your class sections.</small>
+          </div>
+        </div>
+        <button id="btn-logout" class="logout">Logout</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const CURRENT_TEACHER_KEY = 'sam_current_teacher_v1';
+
+  const teacherData = JSON.parse(localStorage.getItem(CURRENT_TEACHER_KEY));
+
+  if (!teacherData) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  document.getElementById('welcome-msg').textContent = `Welcome, ${teacherData.name}`;
+
+  document.getElementById('btn-manage-sections').addEventListener('click', () => {
+    window.location.href = 'sections.html';
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    if (confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem(CURRENT_TEACHER_KEY);
+      localStorage.removeItem('sam_current_section_v1');
+      window.location.href = 'index.html';
+    }
+  });
+})();
+</script>
+</body>
+</html>
