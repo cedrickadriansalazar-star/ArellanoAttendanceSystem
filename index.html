@@ -28,9 +28,28 @@
     button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     button.secondary{background:#4a5568;margin-top:0.5rem;}
     .message{padding:10px;border-radius:8px;margin-top:1rem;font-size:14px;text-align:center;display:none;}
+    .form-link { font-size: 13px; color: var(--accent); text-decoration: none; text-align: right; display: block; margin-top: 8px; cursor: pointer; }
     .message.error{background:#fee2e2;color:#9b1c1c;}
     .message.success{background:#d1fae5;color:#065f46;}
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    #loading-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(255, 255, 255, 0.98);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+        pointer-events: none;
+    }
+    #loading-overlay.show { opacity: 1; pointer-events: auto; }
+    #loading-overlay .loading-logo { width: 80px; height: 80px; animation: pulse 1.5s infinite ease-in-out; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }
   </style>
 </head>
 <body>
@@ -46,6 +65,7 @@
         <input id="login-user" type="text" placeholder="e.g., prof_davis" />
         <label for="login-pass">Password</label>
         <input id="login-pass" type="password" />
+        <a id="btn-show-forgot" class="form-link">Forgot Password?</a>
         <button id="btn-login">Login</button>
         <button id="btn-show-register" class="secondary">Register a new account</button>
       </div>
@@ -61,11 +81,28 @@
         <button id="btn-show-login" class="secondary">Back to Login</button>
       </div>
 
+      <div id="forgot-password-form" style="display:none;">
+        <label for="forgot-user">Username</to>
+        <input id="forgot-user" type="text" placeholder="Enter your username" />
+        <div id="forgot-step-2" style="display:none;">
+            <label for="forgot-pass-new">New Password</label>
+            <input id="forgot-pass-new" type="password" />
+        </div>
+        <button id="btn-forgot-next">Next</button>
+        <button id="btn-show-login-from-forgot" class="secondary">Back to Login</button>
+      </div>
+
       <div id="message" class="message"></div>
+
+      <div id="loading-overlay">
+        <img src="Arellano_University_logo.png" alt="Loading..." class="loading-logo">
+        <p style="margin-top: 1rem;">Registration successful! Redirecting...</p>
+      </div>
     </div>
   </div>
 
 <script>
+// IIFE (Immediately Invoked Function Expression) to avoid polluting the global scope
 (function(){
   const TEACHERS_KEY = 'sam_teachers_v1';
   const CURRENT_TEACHER_KEY = 'sam_current_teacher_v1';
@@ -73,30 +110,43 @@
   const el = id => document.getElementById(id);
   const loginForm = el('login-form');
   const registerForm = el('register-form');
+  const forgotPasswordForm = el('forgot-password-form');
   const messageDiv = el('message');
 
+  // Redirect to landing page if a teacher is already logged in
   if (localStorage.getItem(CURRENT_TEACHER_KEY)) {
     window.location.href = 'landing.html';
   }
 
+  // --- UTILITY FUNCTIONS ---
+  // Displays a success or error message to the user
   function showMessage(text, isError = true) {
     messageDiv.textContent = text;
     messageDiv.className = isError ? 'message error' : 'message success';
     messageDiv.style.display = 'block';
   }
-
+  // --- UI NAVIGATION ---
   el('btn-show-register').addEventListener('click', () => {
     loginForm.style.display = 'none';
     registerForm.style.display = 'block';
+    forgotPasswordForm.style.display = 'none';
     messageDiv.style.display = 'none';
   });
 
   el('btn-show-login').addEventListener('click', () => {
     registerForm.style.display = 'none';
     loginForm.style.display = 'block';
+    forgotPasswordForm.style.display = 'none';
     messageDiv.style.display = 'none';
   });
 
+  el('btn-show-forgot').addEventListener('click', () => {
+    loginForm.style.display = 'none';
+    forgotPasswordForm.style.display = 'block';
+    messageDiv.style.display = 'none';
+  });
+
+  // --- CORE FUNCTIONALITY ---
   el('btn-register').addEventListener('click', () => {
     const user = el('reg-user').value.trim();
     const name = el('reg-name').value.trim();
@@ -108,8 +158,17 @@
 
     teachers[user] = { name, pass }; 
     localStorage.setItem(TEACHERS_KEY, JSON.stringify(teachers));
-    showMessage('Registration successful! Please log in.', false);
-    el('btn-show-login').click();
+    
+    // Show loading animation then switch to login form
+    registerForm.style.display = 'none';
+    messageDiv.style.display = 'none';
+    el('loading-overlay').classList.add('show');
+
+    setTimeout(() => {
+      el('loading-overlay').classList.remove('show');
+      loginForm.style.display = 'block';
+      showMessage('Registration successful! Please log in.', false);
+    }, 2500); // 2.5 seconds for the loading animation
   });
 
   el('btn-login').addEventListener('click', () => {
@@ -122,6 +181,46 @@
 
     localStorage.setItem(CURRENT_TEACHER_KEY, JSON.stringify({ user, name: teachers[user].name }));
     window.location.href = 'landing.html';
+  });
+
+  // Resets and hides the 'Forgot Password' form, showing the login form
+  el('btn-show-login-from-forgot').addEventListener('click', () => {
+    forgotPasswordForm.style.display = 'none';
+    loginForm.style.display = 'block';
+    messageDiv.style.display = 'none';
+    el('forgot-step-2').style.display = 'none';
+    el('btn-forgot-next').textContent = 'Next';
+    el('forgot-user').value = '';
+    el('forgot-pass-new').value = '';
+    el('forgot-user').disabled = false;
+  });
+
+  // Handles the two-step process for password recovery
+  el('btn-forgot-next').addEventListener('click', () => {
+    const user = el('forgot-user').value.trim();
+    const teachers = JSON.parse(localStorage.getItem(TEACHERS_KEY) || '{}');
+    const forgotStep2 = el('forgot-step-2');
+    const nextButton = el('btn-forgot-next');
+
+    if (forgotStep2.style.display === 'block') {
+        // Step 2: Update the password in localStorage
+        const newPass = el('forgot-pass-new').value.trim();
+        if (!newPass) return showMessage('New password cannot be empty.');
+
+        teachers[user].pass = newPass;
+        localStorage.setItem(TEACHERS_KEY, JSON.stringify(teachers));
+        showMessage('Password has been reset successfully! Please log in.', false);
+        el('btn-show-login-from-forgot').click();
+        return;
+    }
+
+    if (!user) return showMessage('Please enter your username.');
+    if (!teachers[user]) return showMessage('Username not found.');
+
+    showMessage('Username found. Please enter a new password.', false);
+    el('forgot-user').disabled = true;
+    forgotStep2.style.display = 'block';
+    nextButton.textContent = 'Reset Password';
   });
 })();
 </script>
