@@ -67,6 +67,22 @@
       .top-nav { width: 100%; display: flex; gap: 8px; }
       .card-title-header { flex-direction: column; align-items: flex-start; gap: 10px; }
     }
+
+    #loading-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(247, 250, 252, 0.95);
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+    #loading-overlay.show { opacity: 1; pointer-events: auto; }
+    #loading-overlay .loading-logo { width: 100px; height: 100px; animation: pulse 1.5s infinite ease-in-out; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }
   </style>
 </head>
 <body>
@@ -98,6 +114,11 @@
     </div>
   </div>
 
+  <div id="loading-overlay">
+    <img src="Arellano_University_logo.png" alt="Loading..." class="loading-logo">
+    <p style="margin-top: 1rem; font-size: 1.1rem; color: var(--muted);">Opening section...</p>
+  </div>
+
   <div id="rename-section-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -116,6 +137,7 @@
   </div>
 
 <script>
+// IIFE to encapsulate the script and avoid global scope pollution
 (function(){
   const CURRENT_TEACHER_KEY = 'sam_current_teacher_v1';
   const SECTIONS_KEY_PREFIX = 'sam_sections_';
@@ -123,15 +145,19 @@
 
   const teacherData = JSON.parse(localStorage.getItem(CURRENT_TEACHER_KEY));
   if (!teacherData) { window.location.href = 'index.html'; return; }
-
+  
+  // Define a unique key for storing sections based on the logged-in teacher's username
   const SECTIONS_KEY = `${SECTIONS_KEY_PREFIX}${teacherData.user}`;
 
   const el = id => document.getElementById(id);
   const sectionsUl = el('sections-ul');
 
+  // --- LOCALSTORAGE HELPER FUNCTIONS ---
   function getSections() { return JSON.parse(localStorage.getItem(SECTIONS_KEY) || '[]'); }
   function saveSections(sections) { localStorage.setItem(SECTIONS_KEY, JSON.stringify(sections)); }
 
+  // --- CORE UI RENDERING ---
+  // Renders the list of sections from localStorage into the UL element
   function renderSections() {
     const sections = getSections();
     sectionsUl.innerHTML = '';
@@ -156,6 +182,7 @@
     });
   }
 
+  // --- EVENT LISTENERS ---
   el('btn-add-section').addEventListener('click', () => {
     const name = el('section-name').value.trim();
     if (!name) return;
@@ -167,14 +194,21 @@
     renderSections();
   });
 
+  // Handles 'open' and 'delete' actions on section items using event delegation
   sectionsUl.addEventListener('click', (e) => {
     const { action, index } = e.target.dataset;
     if (!action) return;
     let sections = getSections();
     if (action === 'open') {
-      localStorage.setItem(CURRENT_SECTION_KEY, JSON.stringify(sections[index]));
-      window.location.href = 'student-attendance.html';
+      // Show loading overlay and redirect to the attendance page for the selected section
+      el('loading-overlay').classList.add('show');
+      setTimeout(() => {
+        localStorage.setItem(CURRENT_SECTION_KEY, JSON.stringify(sections[index]));
+        window.location.href = 'student-attendance.html';
+      }, 1500); // 1.5 second delay for loading animation
+
     } else if (action === 'delete') {
+      // Confirm and delete a section and all its related data (students, attendance)
       if (confirm(`Delete section "${sections[index].name}"? All associated student and attendance data will be lost.`)) {
         const sectionId = sections[index].id;
         localStorage.removeItem(`sam_students_${sectionId}`);
@@ -186,10 +220,12 @@
     }
   });
 
+  // --- RENAME MODAL LOGIC ---
   const renameModal = el('rename-section-modal');
   const renameSelect = el('rename-section-select');
   const renameInput = el('rename-section-new-name');
 
+  // Populates and opens the 'Rename Section' modal
   function openRenameModal() {
     const sections = getSections();
     renameSelect.innerHTML = '';
@@ -229,6 +265,7 @@
   renameModal.querySelector('.close-btn').addEventListener('click', () => renameModal.style.display = 'none');
   window.addEventListener('click', (e) => { if (e.target === renameModal) renameModal.style.display = 'none'; });
 
+  // --- NAVIGATION BUTTONS ---
   el('btn-back-dash').addEventListener('click', () => window.location.href = 'landing.html');
   el('btn-logout').addEventListener('click', () => {
     localStorage.removeItem(CURRENT_TEACHER_KEY);
@@ -236,6 +273,7 @@
     window.location.href = 'index.html'
   });
 
+  // Initial render of sections when the page loads
   renderSections();
 })();
 </script>
