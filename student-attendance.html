@@ -289,6 +289,7 @@
 
 
 <script>
+// IIFE to encapsulate all logic and prevent global scope pollution
 (function(){
   const CURRENT_TEACHER_KEY = 'sam_current_teacher_v1';
   const CURRENT_SECTION_KEY = 'sam_current_section_v1';
@@ -296,17 +297,24 @@
   const teacherData = JSON.parse(localStorage.getItem(CURRENT_TEACHER_KEY));
   const sectionData = JSON.parse(localStorage.getItem(CURRENT_SECTION_KEY));
 
+  // Security check: If teacher or section data is missing, redirect to the appropriate page
   if (!teacherData || !sectionData) {
     window.location.href = teacherData ? 'sections.html' : 'index.html';
     return;
   }
+  
+  // Define unique localStorage keys for the current section
   const STUDENTS_KEY = `sam_students_${sectionData.id}`;
   const ATT_KEY = `sam_attendance_${sectionData.id}`;
   const LAST_ID_KEY = `sam_last_id_${sectionData.id}`;
+
+  // --- DATA HELPER FUNCTIONS (for localStorage interaction) ---
   function loadStudents(){ return JSON.parse(localStorage.getItem(STUDENTS_KEY) || '[]'); }
   function saveStudents(arr){ localStorage.setItem(STUDENTS_KEY, JSON.stringify(arr)); }
   function loadAttendance(){ return JSON.parse(localStorage.getItem(ATT_KEY) || '[]'); }
   function saveAttendance(arr){ localStorage.setItem(ATT_KEY, JSON.stringify(arr)); }
+
+  // Generates a new, unique student ID based on the current year and a counter
   function getNextStudentId() {
     let lastIdNum = parseInt(localStorage.getItem(LAST_ID_KEY) || '0', 10);
     lastIdNum++;
@@ -314,7 +322,7 @@
     const year = new Date().getFullYear();
     return `AU${year}-${String(lastIdNum).padStart(5, '0')}`;
   }
-
+  // Formats a date object into a consistent "MM-DD-YYYY" string for storage
   function formatDateForStore(d){
     const dt = new Date(d);
     if(isNaN(dt)) return null;
@@ -324,7 +332,9 @@
     return `${mm}-${dd}-${yy}`;
   }
 
+  // --- UI UTILITY FUNCTIONS ---
   const el = id => document.getElementById(id);
+  // Shows a temporary message inside a modal or specific container
   const msg = (id, text, ok=true) => {
     const elem = el(id);
     elem.textContent = text;
@@ -334,6 +344,7 @@
     setTimeout(() => { elem.style.display = 'none'; }, 3000);
   };
 
+  // Displays a modern "toast" notification at the top-right of the screen
   function showToast(message, isSuccess = true) {
     const container = el('toast-container');
     const toast = document.createElement('div');
@@ -346,7 +357,8 @@
     }, 3000); // 3 seconds total lifetime
   }
 
-  // Modal Logic
+  // --- MODAL SETUP ---
+  // Sets up event listeners to open and close all modal dialogs
   function setupModals() {
     const openButtons = {
       'btn-open-add-student-modal': 'add-student-modal',
@@ -368,7 +380,9 @@
     });
   }
 
+  // --- CORE RENDERING FUNCTION ---
   function renderRecords(){
+    // Renders the attendance records table based on current data and filters
     const tbody = document.querySelector('#records-table tbody');
     tbody.innerHTML = '';
     const students = loadStudents();
@@ -378,6 +392,7 @@
     const filterDate = el('filter-date').value ? formatDateForStore(el('filter-date').value) : '';
     const filterStatus = el('filter-status').value;
 
+    // Map attendance data to include student names
     const rows = atts.map(a=>{
       const s = students.find(x => x.id.toLowerCase() === a.id.toLowerCase());
       return {
@@ -388,6 +403,7 @@
       };
     });
 
+    // Apply filters for search, date, and status
     const filtered = rows.filter(r => {
         const searchMatch = filterId ? (r.id.toLowerCase().includes(filterId) || r.name.toLowerCase().includes(filterId)) : true;
         const dateMatch = filterDate ? r.date === filterDate : true;
@@ -395,6 +411,7 @@
         return searchMatch && dateMatch && statusMatch;
     });
 
+    // Sort records by date (newest first), then by ID
     filtered.sort((a,b)=>{
       const ad = new Date(a.date), bd = new Date(b.date);
       return bd - ad || a.id.localeCompare(b.id);
@@ -418,11 +435,14 @@
     el('row-count').textContent = filtered.length;
   }
 
+  // Simple HTML escaping function to prevent XSS
   function escapeHtml(s){
     return String(s || '').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
+  // --- EVENT LISTENERS FOR ACTIONS ---
   el('btn-add-student').addEventListener('click', ()=>{
+    // Adds a new student to the current section
     const name = el('student-name').value.trim();
     if(!name){ msg('add-student-msg','Please enter a name.', false); return; }
 
@@ -440,6 +460,7 @@
   });
 
   el('btn-list-students').addEventListener('click', ()=>{
+    // Shows a simple alert with a list of all students in the section
     const students = loadStudents();
     if(students.length===0) return alert('No students stored yet.');
     const list = students.map(s => `${s.id}\t${s.name}`).join('\n');
@@ -447,6 +468,7 @@
   });
 
   el('btn-mark-att').addEventListener('click', ()=>{
+    // Marks or updates attendance for a single student
     const idVal = el('att-id').value.trim();
     const dateVal = el('att-date').value;
     const status = el('att-status').value;
@@ -479,6 +501,7 @@
   });
   
   el('btn-bulk-present').addEventListener('click', ()=>{
+    // Marks all students in the section as 'Present' for the current date
     const students = loadStudents();
     if(students.length===0){ alert('No students to mark. Add students first.'); return; }
     const today = new Date();
@@ -497,11 +520,13 @@
   });
 
   el('btn-reset-filters').addEventListener('click', ()=>{ 
+    // Clears all filter inputs and re-renders the table
     el('search-id').value=''; el('filter-date').value=''; el('filter-status').value='';
     renderRecords(); 
   });
 
   document.querySelector('#records-table tbody').addEventListener('click', (ev)=>{
+    // Handles deleting a single attendance record from the table
     const deleteButton = ev.target.closest('button[data-action="delete"]');
     if(deleteButton){
       const id = deleteButton.dataset.id;
@@ -515,6 +540,7 @@
   });
 
   el('btn-import-students').addEventListener('click', () => {
+    // Triggers the file input to import students from a CSV file
     el('file-input').setAttribute('accept', '.csv');
     el('file-input').dataset.importType = 'students';
     el('file-input').click();
@@ -527,6 +553,7 @@
   }
 
   el('btn-export-backup').addEventListener('click', ()=>{
+    // Exports all students and attendance data for the section to an XLSX (Excel) file
     const students = loadStudents();
     const attendance = loadAttendance();
 
@@ -541,6 +568,7 @@
   });
 
   el('file-input').addEventListener('change', (e)=>{
+    // Handles the file selection for either student import or backup import
     const importType = e.target.dataset.importType;
     if (importType === 'students') {
         handleStudentImport(e);
@@ -552,6 +580,7 @@
     e.target.setAttribute('accept', '.json,.csv');
   });
 
+  // Logic to handle importing a full backup from an XLSX file
   function handleBackupImport(e) {
     const f = e.target.files[0];
     if(!f) return;
@@ -582,6 +611,7 @@
     reader.readAsArrayBuffer(f);
   }
 
+  // Logic to handle importing a list of student names from a CSV file
   function handleStudentImport(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -610,6 +640,7 @@
   }
 
   el('btn-clear').addEventListener('click', ()=>{
+    // Deletes all data (students, attendance, ID counter) for the current section
     if(!confirm(`Clear ALL students and attendance for section "${sectionData.name}"? This cannot be undone.`)) return;
     localStorage.removeItem(STUDENTS_KEY);
     localStorage.removeItem(ATT_KEY);
@@ -618,6 +649,7 @@
   });
 
   el('btn-export-csv').addEventListener('click', ()=>{
+    // Exports the currently visible (filtered) attendance records to a CSV file
     const tableRows = document.querySelectorAll('#records-table tbody tr');
     if(tableRows.length === 0){ alert('No records are currently displayed to export.'); return; }
     const rows = Array.from(tableRows).map(tr => {
@@ -632,7 +664,9 @@
     URL.revokeObjectURL(url);
   });
 
+  // --- QR CODE SCANNER LOGIC ---
   let html5QrCode = null;
+  // Starts or stops the QR code scanner
   el('btn-start-scan').addEventListener('click', () => {
     if (html5QrCode && html5QrCode.isScanning) {
       html5QrCode.stop().then(ignore => {
@@ -643,6 +677,7 @@
     }
 
     html5QrCode = new Html5Qrcode("qr-reader");
+    // Callback function for when a QR code is successfully scanned
     const qrCodeSuccessCallback = (decodedText, decodedResult) => {
       const students = loadStudents();
       const student = students.find(s => s.id.toLowerCase() === decodedText.toLowerCase());
@@ -659,6 +694,7 @@
       el('qr-result').textContent = `Last scan attempt: ${new Date().toLocaleTimeString()}`;
     };
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    // Start the scanner using the device's back camera
     html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
       .then(() => {
         el('btn-start-scan').innerHTML = "<i class='bx bx-stop-circle'></i> Stop Scanner";
@@ -669,7 +705,9 @@
       });
   });
 
+  // --- QR CODE GENERATION LOGIC ---
   el('btn-generate-qrs').addEventListener('click', () => {
+    // Generates and displays QR codes for all students in the section
     const students = loadStudents();
     const container = el('qr-codes-container');
     container.innerHTML = '';
@@ -693,6 +731,7 @@
     });
   });
 
+  // Saves the generated QR codes as a multi-page PDF file
   el('btn-save-pdf').addEventListener('click', () => {
     const { jsPDF } = window.jspdf;
     const qrContainer = el('qr-codes-container');
@@ -733,7 +772,9 @@
     });
   });
 
+  // --- INITIALIZATION FUNCTION ---
   function init() {
+    // Sets up the page on initial load
     el('section-title').textContent = `Section: ${sectionData.name}`;
     document.title = `Attendance - ${sectionData.name}`;
     el('att-date').valueAsDate = new Date();
@@ -748,6 +789,7 @@
     renderRecords();
   }
 
+  // Run the initialization function when the script loads
   init();
 
   el('btn-switch-section').innerHTML = "<i class='bx bx-transfer'></i> " + el('btn-switch-section').textContent;
