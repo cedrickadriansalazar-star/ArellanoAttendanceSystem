@@ -58,22 +58,28 @@
   </div>
 
 <script>
+// IIFE to keep variables local and not interfere with other scripts
 (function(){
   const CURRENT_TEACHER_KEY = 'sam_current_teacher_v1';
 
+  // Get the currently logged-in teacher's data from localStorage
   const teacherData = JSON.parse(localStorage.getItem(CURRENT_TEACHER_KEY));
 
+  // If no teacher is logged in, redirect back to the login page
   if (!teacherData) {
     window.location.href = 'index.html';
     return;
   }
 
+  // Personalize the welcome message with the teacher's name
   document.getElementById('welcome-msg').textContent = `Welcome, ${teacherData.name}`;
 
+  // Event listener to navigate to the section management page
   document.getElementById('btn-manage-sections').addEventListener('click', () => {
     window.location.href = 'sections.html';
   });
 
+  // Event listener for the logout button
   document.getElementById('btn-logout').addEventListener('click', () => {
     if (confirm('Are you sure you want to logout?')) {
       localStorage.removeItem(CURRENT_TEACHER_KEY);
